@@ -1,13 +1,22 @@
 using UnityEditor;
 using UnityEngine;
-using static UnityEngine.GraphicsBuffer;
+using Photon.Pun;
+using Photon.Realtime;
+using TMPro;
 
-
-public class Player : Entity
+public class Player : Entity, IPunObservable
 {
     [SerializeField] private float moveSpeed = 5;
     [SerializeField] private float strikeRange = 2;
     [SerializeField] private float angleRange = 50;
+
+    public PhotonView PV;
+    public TextMeshProUGUI nameText;
+    private void Awake()
+    {
+        nameText.text = PV.IsMine ? PhotonNetwork.NickName : PV.Owner.NickName;
+        nameText.color = PV.IsMine ? Color.green : Color.red;
+    }
     protected override void Start()
     {
         base.Start();
@@ -19,6 +28,8 @@ public class Player : Entity
     }
     private void InputFunc()
     {
+        if (!PV.IsMine) return;
+
         Move();
         MouseInput();
     }
@@ -30,7 +41,6 @@ public class Player : Entity
             TryStrke(Camera.main.ScreenToWorldPoint(Input.mousePosition) - transform.position);
         }
     }
-    #region StrikeFunc
     private void TryStrke(Vector3 dir)
     {
         Debug.DrawRay(transform.position, dir, Color.green);
@@ -53,22 +63,7 @@ public class Player : Entity
                 target.collider.gameObject.GetComponent<Ball>().StrikeFunc(vec);
             }
         }
-
-
-        //Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        //Vector2 targetPos = transform.position;
-        //var vec = new Vector2(mousePos.x - targetPos.x, mousePos.y - targetPos.y).normalized;
-
-        //Debug.Log(vec);
-        //FindObjectOfType<Ball>().StrikeFunc(vec);
     }
-    private void OnDrawGizmos()
-    {
-        // DrawSolidArc(시작점, 노멀벡터(법선벡터), 그려줄 방향 벡터, 각도, 반지름)
-        Handles.DrawSolidArc(transform.position, Vector3.up, transform.forward, strikeRange / 2, 2);
-        Handles.DrawSolidArc(transform.position, Vector3.up, transform.forward, -strikeRange / 2, 2);
-    }
-    #endregion
     //상하좌우 이동
     private void Move()
     {
@@ -82,5 +77,11 @@ public class Player : Entity
     {
         var dir = pos * moveSpeed * Time.deltaTime;
         rigid.AddForce(dir, ForceMode2D.Force);
+    }
+
+    public void OnPhotonSerializeView(PhotonStream stream, PhotonMessageInfo info)
+    {
+
+
     }
 }
